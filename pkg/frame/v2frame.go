@@ -68,11 +68,17 @@ type V2Frame struct {
 	SignatureLinkID     byte
 	SignatureTimestamp  uint64
 	Signature           *V2Signature
+	Raw                 []byte
 }
 
 // GetSystemID implements Frame.
 func (f V2Frame) GetSystemID() byte {
 	return f.SystemID
+}
+
+// GetRawFrame implements Frame.
+func (f V2Frame) GetRawFrame() []byte {
+	return f.Raw
 }
 
 // GetComponentID implements Frame.
@@ -148,6 +154,9 @@ func (f V2Frame) GenerateSignature(key *V2Key) *V2Signature {
 }
 
 func (f *V2Frame) decode(br *bufio.Reader) error {
+	// Reset Raw at the beginning of each call
+	f.Raw = []byte{}
+
 	// header
 	buf, err := br.Peek(9)
 	if err != nil {
@@ -161,6 +170,9 @@ func (f *V2Frame) decode(br *bufio.Reader) error {
 	f.SystemID = buf[4]
 	f.ComponentID = buf[5]
 	msgID := uint24Decode(buf[6:])
+
+	// Append header to Raw
+	f.Raw = append(f.Raw, buf...)
 
 	// discard frame if incompatibility flag is not understood, as in recommendations
 	if f.IncompatibilityFlag != 0 && f.IncompatibilityFlag != V2FlagSigned {
@@ -181,6 +193,9 @@ func (f *V2Frame) decode(br *bufio.Reader) error {
 		Payload: msgEncoded,
 	}
 
+	// Append message payload to Raw
+	f.Raw = append(f.Raw, msgEncoded...)
+
 	// checksum
 	buf, err = br.Peek(2)
 	if err != nil {
@@ -188,6 +203,9 @@ func (f *V2Frame) decode(br *bufio.Reader) error {
 	}
 	br.Discard(2)
 	f.Checksum = binary.LittleEndian.Uint16(buf)
+
+	// Append checksum to Raw
+	f.Raw = append(f.Raw, buf...)
 
 	// signature
 	if f.IsSigned() {
@@ -200,6 +218,9 @@ func (f *V2Frame) decode(br *bufio.Reader) error {
 		f.SignatureTimestamp = uint48Decode(buf[1:])
 		f.Signature = new(V2Signature)
 		copy(f.Signature[:], buf[7:])
+
+		// Append signature to Raw
+		f.Raw = append(f.Raw, buf...)
 	}
 
 	return nil

@@ -21,6 +21,9 @@ type Frame interface {
 	// returns the checksum of the frame.
 	GetChecksum() uint16
 
+	// returns the raw frame
+	GetRawFrame() []byte
+
 	// generates the checksum of the frame.
 	GenerateChecksum(byte) uint16
 

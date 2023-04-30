@@ -22,11 +22,17 @@ type V1Frame struct {
 	ComponentID byte
 	Message     message.Message
 	Checksum    uint16
+	Raw         []byte
 }
 
 // GetSystemID implements Frame.
 func (f V1Frame) GetSystemID() byte {
 	return f.SystemID
+}
+
+// GetRawFrame implements Frame.
+func (f V1Frame) GetRawFrame() []byte {
+	return f.Raw
 }
 
 // GetComponentID implements Frame.
@@ -62,6 +68,9 @@ func (f V1Frame) GenerateChecksum(crcExtra byte) uint16 {
 }
 
 func (f *V1Frame) decode(br *bufio.Reader) error {
+	// Reset Raw at the beginning of each call
+	f.Raw = []byte{}
+
 	// header
 	buf, err := br.Peek(5)
 	if err != nil {
@@ -73,6 +82,9 @@ func (f *V1Frame) decode(br *bufio.Reader) error {
 	f.SystemID = buf[2]
 	f.ComponentID = buf[3]
 	msgID := buf[4]
+
+	// Append header to Raw
+	f.Raw = append(f.Raw, buf...)
 
 	// message
 	var msgEncoded []byte
@@ -88,6 +100,9 @@ func (f *V1Frame) decode(br *bufio.Reader) error {
 		Payload: msgEncoded,
 	}
 
+	// Append message payload to Raw
+	f.Raw = append(f.Raw, msgEncoded...)
+
 	// checksum
 	buf, err = br.Peek(2)
 	if err != nil {
@@ -95,6 +110,9 @@ func (f *V1Frame) decode(br *bufio.Reader) error {
 	}
 	br.Discard(2)
 	f.Checksum = binary.LittleEndian.Uint16(buf)
+
+	// Append checksum to Raw
+	f.Raw = append(f.Raw, buf...)
 
 	return nil
 }
