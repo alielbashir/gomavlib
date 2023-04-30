@@ -91,7 +91,7 @@ type Node struct {
 	dialectRW          *dialect.ReadWriter
 	channelAccepters   map[*channelAccepter]struct{}
 	channelAcceptersWg sync.WaitGroup
-	channels           map[*Channel]struct{}
+	Channels           map[*Channel]struct{}
 	channelsWg         sync.WaitGroup
 	nodeHeartbeat      *nodeHeartbeat
 	nodeStreamRequest  *nodeStreamRequest
@@ -162,7 +162,7 @@ func NewNode(conf NodeConf) (*Node, error) {
 		conf:             conf,
 		dialectRW:        dialectRW,
 		channelAccepters: make(map[*channelAccepter]struct{}),
-		channels:         make(map[*Channel]struct{}),
+		Channels:         make(map[*Channel]struct{}),
 		channelNew:       make(chan *Channel),
 		channelClose:     make(chan *Channel),
 		writeTo:          make(chan writeToReq),
@@ -174,7 +174,7 @@ func NewNode(conf NodeConf) (*Node, error) {
 	}
 
 	closeExisting := func() {
-		for ch := range n.channels {
+		for ch := range n.Channels {
 			ch.close()
 		}
 		for ca := range n.channelAccepters {
@@ -207,7 +207,7 @@ func NewNode(conf NodeConf) (*Node, error) {
 				return nil, err
 			}
 
-			n.channels[ch] = struct{}{}
+			n.Channels[ch] = struct{}{}
 
 		default:
 			panic(fmt.Errorf("endpoint %T does not implement any interface", tp))
@@ -225,7 +225,7 @@ func NewNode(conf NodeConf) (*Node, error) {
 		go n.nodeStreamRequest.run()
 	}
 
-	for ch := range n.channels {
+	for ch := range n.Channels {
 		ch.start()
 	}
 
@@ -251,15 +251,15 @@ outer:
 	for {
 		select {
 		case ch := <-n.channelNew:
-			n.channels[ch] = struct{}{}
+			n.Channels[ch] = struct{}{}
 			ch.start()
 
 		case ch := <-n.channelClose:
-			delete(n.channels, ch)
+			delete(n.Channels, ch)
 			ch.close()
 
 		case req := <-n.writeTo:
-			if _, ok := n.channels[req.ch]; !ok {
+			if _, ok := n.Channels[req.ch]; !ok {
 				return
 			}
 
@@ -273,7 +273,7 @@ outer:
 			var err error
 			what, err = n.encodeMessage(what)
 			if err == nil {
-				for ch := range n.channels {
+				for ch := range n.Channels {
 					ch.write <- what
 				}
 			}
@@ -282,7 +282,7 @@ outer:
 			var err error
 			req.what, err = n.encodeMessage(req.what)
 			if err == nil {
-				for ch := range n.channels {
+				for ch := range n.Channels {
 					if ch != req.except {
 						ch.write <- req.what
 					}
@@ -307,7 +307,7 @@ outer:
 	}
 	n.channelAcceptersWg.Wait()
 
-	for ch := range n.channels {
+	for ch := range n.Channels {
 		ch.close()
 	}
 	n.channelsWg.Wait()
