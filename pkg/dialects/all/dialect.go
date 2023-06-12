@@ -252,6 +252,9 @@ var dial = &dialect.Dialect{
 		&MessageHerelinkTelem{},
 		&MessageCubepilotFirmwareUpdateStart{},
 		&MessageCubepilotFirmwareUpdateResp{},
+		// csairlink
+		&MessageAirlinkAuth{},
+		&MessageAirlinkAuthResponse{},
 		// ardupilotmega
 		&MessageSensorOffsets{},
 		&MessageSetMagOffsets{},
@@ -348,6 +351,7 @@ var dial = &dialect.Dialect{
 		&MessageGroupEnd{},
 		&MessageAvailableModes{},
 		&MessageCurrentMode{},
+		&MessageAvailableModesMonitor{},
 		&MessageTargetAbsolute{},
 		&MessageTargetRelative{},
 		// pythonarraytest

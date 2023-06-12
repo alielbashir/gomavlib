@@ -11,7 +11,7 @@ import (
 type MAV_CMD uint32
 
 const (
-	// Navigate to waypoint.
+	// Navigate to waypoint. This is intended for use in missions (for guided commands outside of missions use MAV_CMD_DO_REPOSITION).
 	MAV_CMD_NAV_WAYPOINT MAV_CMD = 16
 	// Loiter around this waypoint an unlimited amount of time
 	MAV_CMD_NAV_LOITER_UNLIM MAV_CMD = 17
@@ -110,7 +110,7 @@ const (
 	MAV_CMD_DO_RALLY_LAND MAV_CMD = 190
 	// Mission command to safely abort an autonomous landing.
 	MAV_CMD_DO_GO_AROUND MAV_CMD = 191
-	// Reposition the vehicle to a specific WGS84 global position.
+	// Reposition the vehicle to a specific WGS84 global position. This command is intended for guided commands (for missions use MAV_CMD_NAV_WAYPOINT instead).
 	MAV_CMD_DO_REPOSITION MAV_CMD = 192
 	// If in a GPS controlled position mode, hold the current position or continue.
 	MAV_CMD_DO_PAUSE_CONTINUE MAV_CMD = 193
@@ -253,7 +253,7 @@ const (
 	MAV_CMD_JUMP_TAG MAV_CMD = 600
 	// Jump to the matching tag in the mission list. Repeat this action for the specified number of times. A mission should contain a single matching tag for each jump. If this is not the case then a jump to a missing tag should complete the mission, and a jump where there are multiple matching tags should always select the one with the lowest mission sequence number.
 	MAV_CMD_DO_JUMP_TAG MAV_CMD = 601
-	// High level setpoint to be sent to a gimbal manager to set a gimbal attitude. It is possible to set combinations of the values below. E.g. an angle as well as a desired angular rate can be used to get to this angle at a certain angular rate, or an angular rate only will result in continuous turning. NaN is to be used to signal unset. Note: a gimbal is never to react to this command but only the gimbal manager.
+	// Set gimbal manager pitch/yaw setpoints (low rate command). It is possible to set combinations of the values below. E.g. an angle as well as a desired angular rate can be used to get to this angle at a certain angular rate, or an angular rate only will result in continuous turning. NaN is to be used to signal unset. Note: only the gimbal manager will react to this command - it will be ignored by a gimbal device. Use GIMBAL_MANAGER_SET_PITCHYAW if you need to stream pitch/yaw setpoints at higher rate.
 	MAV_CMD_DO_GIMBAL_MANAGER_PITCHYAW MAV_CMD = 1000
 	// Gimbal configuration to set which sysid/compid is in primary and secondary control.
 	MAV_CMD_DO_GIMBAL_MANAGER_CONFIGURE MAV_CMD = 1001
@@ -423,6 +423,8 @@ const (
 	MAV_CMD_GUIDED_CHANGE_ALTITUDE MAV_CMD = 43001
 	// Change to target heading at a given rate, overriding previous heading/s. This slews the vehicle at a controllable rate between it's previous heading and the new one. (affects GUIDED only. Exiting GUIDED returns aircraft to normal behaviour defined elsewhere. Designed for onboard companion-computer command-and-control, not normally operator/GCS control.)
 	MAV_CMD_GUIDED_CHANGE_HEADING MAV_CMD = 43002
+	// Provide an external position estimate for use when dead-reckoning. This is meant to be used for occasional position resets that may be provided by a external system such as a remote pilot using landmarks over a video link.
+	MAV_CMD_EXTERNAL_POSITION_ESTIMATE MAV_CMD = 43003
 )
 
 var labels_MAV_CMD = map[MAV_CMD]string{
@@ -616,6 +618,7 @@ var labels_MAV_CMD = map[MAV_CMD]string{
 	MAV_CMD_GUIDED_CHANGE_SPEED:                "MAV_CMD_GUIDED_CHANGE_SPEED",
 	MAV_CMD_GUIDED_CHANGE_ALTITUDE:             "MAV_CMD_GUIDED_CHANGE_ALTITUDE",
 	MAV_CMD_GUIDED_CHANGE_HEADING:              "MAV_CMD_GUIDED_CHANGE_HEADING",
+	MAV_CMD_EXTERNAL_POSITION_ESTIMATE:         "MAV_CMD_EXTERNAL_POSITION_ESTIMATE",
 }
 
 // MarshalText implements the encoding.TextMarshaler interface.
